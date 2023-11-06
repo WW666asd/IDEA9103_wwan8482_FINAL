@@ -106,7 +106,7 @@ class GrayRect {
 
 function setup() {
   createCanvas(canvasWidth, canvasHeight);
-
+  
   // Save rects of different colors and types into an array
   // horizontal routes (Record the entrance and exit coordinates on the horizontal route of the road map in the work, that is, the coordinates of the canvas against the edge of the canvas.)
   yellowRects.push(new YellowRect(0, 20, 1000, pixelLength));
@@ -246,7 +246,8 @@ function draw() {
   for (let i = 0; i < yellowRects.length; i++) {
     yellowRects[i].draw();
   }
-
+  
+  // Ensure that initvehicle will only be executed once to avoid repeated initialization
   if (firstRun) {
     initVehicles();
     firstRun = false;
@@ -277,20 +278,20 @@ function draw() {
 
 // Modified the logic of identifying yellow squares in group code. Now do a random operation every time a yellow rect is recognized, and set it to 30% chance that the yellow rect will turn into a rect of other colors.
 function initVehicles() {
-    const colors = [color(34,80,149), color(221,1,0), color(200),]; // "use rbg to change #225095 in group code"
-    const dirs = ['up', 'down', 'left', 'right'];
-    loadPixels();
-    for (let x = 0; x < canvasWidth; x += pixelLength) {
-      for (let y = 0; y < canvasHeight; y += pixelLength) {
-        const col = get(x, y);
-        if (col[0] === 250 && col[1] === 201 && col[2] === 1) {
-          // 30% chance to change cell color
-          if (random(0, 1) < 0.3) {
-              vehicles.push({x: x, y: y, dir: random(dirs), spd: 1, col: random(colors),});
-          }
+  const colors = [color(34,80,149), color(221,1,0), color(200),]; // "use rbg to change #225095 in group code"
+  const dirs = ['up', 'down', 'left', 'right'];
+  loadPixels();
+  for (let x = 0; x < canvasWidth; x += pixelLength) {
+    for (let y = 0; y < canvasHeight; y += pixelLength) {
+      const col = get(x, y);
+      if (col[0] === 250 && col[1] === 201 && col[2] === 1) {
+        // 30% chance to change cell color
+        if (random(0, 1) < 0.3) {
+            vehicles.push({x: x, y: y, dir: random(dirs), spd: 1, col: random(colors),});
         }
       }
     }
+  }
 }
 
 function moveVehicles() {
@@ -414,6 +415,7 @@ function moveVehicles() {
   }
 }
 
+
 function drawVehicles() {
   push();
   for (let i = 0; i < vehicles.length; i++) {
@@ -424,35 +426,100 @@ function drawVehicles() {
   pop();
 }
 
-//Present the current FPS value to the user
+//The upper right corner shows the speed and quantity changes
 function drawTexts() {
   push();
+  
   noStroke();
   rectMode(CENTER);
   fill(200, 200, 200, 200);
   rect(canvasWidth - 150, 95, 250, 60, 10);
+  rect(canvasWidth - 150, 195, 250, 60, 10);
+  if (pauseMovingVehicles) {
+    rect(canvasWidth / 2, canvasHeight - 50 - 5, 250, 60, 10);  // Appears only when paused
+  }
+  
   fill(0);
   textFont('Arial');
-  textSize(60);
+  textSize(50);
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   text('FPS: ' + fps, canvasWidth - 150, 100);
+  text('N: ' + vehicles.length, canvasWidth - 150, 200);
+  fill(200, 0, 0);
+  if (pauseMovingVehicles) {
+    text('PAUSED', canvasWidth / 2, canvasHeight - 50);   
+  }
+
   pop();
 }
 
-//Set the direction up and down keys to accelerate/decelerate, and set the space bar as the pause or start animation key
+// Set 64 as the maximum fps value and each speed increase is twice the current value.
+function increaseSpeed() {
+  if (fps < 64) {
+    fps *= 2;
+  }
+  frameRate(fps);
+}
+
+// Set the minimum fps value to 1, and each time the speed is reduced by 1/2 of the current value
+function decreaseSpeed() {
+  if (fps > 1) {
+    fps /= 2;
+  }
+  frameRate(fps);
+}
+
+// Set the pause or continue
+function pauseOrContinue() {
+  pauseMovingVehicles = !pauseMovingVehicles;
+}
+
+// Set the newly added rect and the upper limit is 999
+function increaseVehicles() {
+  const colors = [color(34, 80, 149), color(221, 1, 0), color(200)];
+   for (let i = 0; i < 10 && vehicles.length < 999; i++) {
+    const entry = random(entries);
+
+    let newVehicle = {
+      x: entry.x,
+      y: entry.y,
+      dir: '',
+      col: random(colors),
+    };
+  
+    if (entry.x == 0) {
+      newVehicle.dir = 'right';  
+    } else if (entry.x == canvasWidth - pixelLength) {
+      newVehicle.dir = 'left';  
+    } else if (entry.y == 0) {
+      newVehicle.dir = 'down';  
+    } else {
+      newVehicle.dir = 'up';  
+    }
+  
+    vehicles.push(newVehicle);
+  }
+}
+
+// Set the decrease rect and the lower limit is 0
+function decreaseVehicles() {
+  for (let i = 0; i < 10 && vehicles.length > 0; i++) {
+    vehicles.pop();
+  }
+}
+
+// Set key
 function keyPressed() {
   if (keyCode === UP_ARROW) {
-    if (fps < 64) {
-      fps *= 2;   // Set 64 as the maximum fps value and each speed increase is twice the current value.
-    }
-    frameRate(fps);
+    increaseSpeed();
   } else if (keyCode === DOWN_ARROW) {
-    if (fps > 1) {
-      fps /= 2;  // Set the minimum fps value to 1, and each time the speed is reduced by 1/2 of the current value
-    }
-    frameRate(fps);
+    decreaseSpeed();
+  } else if (keyCode === LEFT_ARROW) {
+    decreaseVehicles();
+  } else if (keyCode === RIGHT_ARROW) {
+    increaseVehicles();
   } else if (key === ' ') {
-    pauseMovingVehicles = !pauseMovingVehicles;
+    pauseOrContinue();
   }
 }
