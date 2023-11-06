@@ -11,6 +11,8 @@ let entries = [];
 let vehicles = [];
 
 let firstRun = true;
+let pauseMovingVehicles = false;
+let fps = 8;
 
 
 // Set fixed classes with rectangles of different colors and sizes. The purpose of distinguishing them is to facilitate later animation and to give them unique functions.
@@ -235,7 +237,7 @@ function setup() {
   grayRects.push(new GrayRect(660, 420, pixelLength * 3, 60));
   grayRects.push(new GrayRect(640, 540, pixelLength * 5, 20));
 
-  frameRate(6);   // vehicles speed
+  frameRate(fps); // vehicles speed
 }
 
 function draw() {
@@ -249,24 +251,28 @@ function draw() {
     initVehicles();
     firstRun = false;
   }
-
-  moveVehicles();
+  //Start/pause animation
+  if (!pauseMovingVehicles) {
+    moveVehicles();
+  }
 
   drawVehicles();
 
   // Draw all the rects in the array
-   for (let i = 0; i < extraYellowRects.length; i++) {
-     extraYellowRects[i].draw();
-   }
-   for (let i = 0; i < blueRects.length; i++) {
-     blueRects[i].draw();
-   }
-   for (let i = 0; i < redRects.length; i++) {
-     redRects[i].draw();
-   }
-   for (let i = 0; i < grayRects.length; i++) {
-     grayRects[i].draw();
-   }
+  for (let i = 0; i < extraYellowRects.length; i++) {
+    extraYellowRects[i].draw();
+  }
+  for (let i = 0; i < blueRects.length; i++) {
+    blueRects[i].draw();
+  }
+  for (let i = 0; i < redRects.length; i++) {
+    redRects[i].draw();
+  }
+  for (let i = 0; i < grayRects.length; i++) {
+    grayRects[i].draw();
+  }
+
+  drawTexts();
 }
 
 // Modified the logic of identifying yellow squares in group code. Now do a random operation every time a yellow rect is recognized, and set it to 30% chance that the yellow rect will turn into a rect of other colors.
@@ -409,9 +415,44 @@ function moveVehicles() {
 }
 
 function drawVehicles() {
+  push();
   for (let i = 0; i < vehicles.length; i++) {
     noStroke();
     fill(vehicles[i].col);
     rect(vehicles[i].x, vehicles[i].y, pixelLength, pixelLength);
+  }
+  pop();
+}
+
+//Present the current FPS value to the user
+function drawTexts() {
+  push();
+  noStroke();
+  rectMode(CENTER);
+  fill(200, 200, 200, 200);
+  rect(canvasWidth - 150, 95, 250, 60, 10);
+  fill(0);
+  textFont('Arial');
+  textSize(60);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  text('FPS: ' + fps, canvasWidth - 150, 100);
+  pop();
+}
+
+//Set the direction up and down keys to accelerate/decelerate, and set the space bar as the pause or start animation key
+function keyPressed() {
+  if (keyCode === UP_ARROW) {
+    if (fps < 64) {
+      fps *= 2;   // Set 64 as the maximum fps value and each speed increase is twice the current value.
+    }
+    frameRate(fps);
+  } else if (keyCode === DOWN_ARROW) {
+    if (fps > 1) {
+      fps /= 2;  // Set the minimum fps value to 1, and each time the speed is reduced by 1/2 of the current value
+    }
+    frameRate(fps);
+  } else if (key === ' ') {
+    pauseMovingVehicles = !pauseMovingVehicles;
   }
 }
